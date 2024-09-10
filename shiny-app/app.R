@@ -30,10 +30,10 @@ library(stringr)
 # Detailed workflows in indicator repo: https://github.com/yanisica/indicators
 
 # Load data----
-#setwd(file.path("GitHub","indicators-app"))
+#setwd(file.path("indicators-app","shiny-app"))
 
 # all indicators extracted
-dataset <- fread(file.path(".","data","IPBES-TSU-KND-2023-Indicators-Dataset-v1.1.csv)"))
+dataset <- fread(file.path("..","data","IPBES-TSU-KND-2023-Indicators-Dataset-v1.1.csv"))
 names(dataset)
 #DT::datatable(dataset)
 
