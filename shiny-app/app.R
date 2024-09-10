@@ -37,7 +37,7 @@ data_dir = 'C:/Users/JLU-SU/Documents/GitHub/indicators-app/data'
 ## load data----
 
 # all indicators extracted
-dataset <- fread(paste0(data_dir,"/IPBES-TSU-KND-2023-Indicators-Dataset-v1.1.csv"))
+dataset <- fread("./data/IPBES-TSU-KND-2023-Indicators-Dataset-v1.1.csv")
 names(dataset)
 #DT::datatable(dataset)
 
@@ -58,6 +58,8 @@ dataset_beauty <- dataset %>%
   rowwise() %>% mutate(Assessments = trimws(Assessments, whitespace = ",")) %>% 
   rowwise() %>% mutate(Assessments = gsub(",,", '', Assessments)) %>% 
   rowwise() %>% mutate(Assessments = gsub("NA$", '', Assessments)) %>% 
+  rowwise() %>% mutate(Assessments = gsub(",", ', ', Assessments)) %>% 
+  
   
   # indic from MEAs
   mutate(km_gbf = gsub(1, 'GBF', km_gbf)) %>% 
@@ -73,6 +75,8 @@ dataset_beauty <- dataset %>%
   rowwise() %>% mutate(MEAs = trimws(MEAs, whitespace = ",")) %>% 
   rowwise() %>% mutate(MEAs = gsub(",,", '', MEAs)) %>%   
   rowwise() %>% mutate(MEAs = gsub("NA$", '', MEAs)) %>% 
+  rowwise() %>% mutate(MEAs = gsub(",", ', ', MEAs)) %>% 
+  
   # way of extraction
   rowwise() %>% mutate(indic_ext = gsub(1, 'tables', indic_ext)) %>% 
   rowwise() %>% mutate(var_ext = gsub(1, 'text', var_ext)) %>% 
@@ -80,6 +84,8 @@ dataset_beauty <- dataset %>%
   rowwise() %>% mutate(extraction_type = gsub("NA,", '', extraction_type)) %>% 
   rowwise() %>% mutate(extraction_type = gsub(",NA", '', extraction_type)) %>% 
   rowwise() %>% mutate(extraction_type = gsub("NA$", '', extraction_type)) %>% 
+  rowwise() %>% mutate(extraction_type = gsub(",", ', ', extraction_type)) %>% 
+  
   # clean dataset
   rowwise() %>% mutate(Categories = stringr::str_to_sentence(Categories)) %>% 
   rowwise() %>% mutate(Categories_2 = stringr::str_to_sentence(Categories_2)) %>% 
@@ -88,18 +94,20 @@ dataset_beauty <- dataset %>%
   dplyr::select( "Indicators harmonized"="indicators_harmonized","Assessments","MEAs","Frequency of use"="usage",
                  "Main category"="Categories","Main subcategory"="Subcategories",
                 "Second. category"="Categories_2","Second. subcategory"="Subcategories_2","Extraction type" = "extraction_type")
-
+DT::datatable(dataset_beauty)
 ## build app----
 
 
 ui <- fluidPage(titlePanel("Indicators used in assessments and MEAs"),
-                mainPanel(width = 12,
+                #titlePanel("Download options"),
+                mainPanel(width = 20,
+                          h3(paste0("Download options")),
                           DT::dataTableOutput("mytable")))
 
 server <- function(input, output) {
   output$mytable <- DT::renderDataTable(dataset_beauty,
                                         options = list(paging = TRUE,    ## paginate the output
-                                                       pageLength = 10,  ## number of rows to output for each page
+                                                       pageLength = 15,  ## number of rows to output for each page
                                                        scrollX = TRUE,   ## enable scrolling on X axis
                                                        scrollY = TRUE,   ## enable scrolling on Y axis
                                                        autoWidth = TRUE, ## use smart column width handling
@@ -107,8 +115,8 @@ server <- function(input, output) {
                                                        # allow user download
                                                        dom = 'Bfrtip', #B:Button, f:filter, r:processing display element, t:table, i:table information summary, p:pagination control
                                                        buttons = c('csv', 'excel'),
-                                                       columnDefs = list(list(targets = '_all', className = 'dt-center'),
-                                                                         list(targets = c(0, 8, 9), visible = FALSE))
+                                                       columnDefs = list(list(targets = 1, width = '300px'),
+                                                                         list(targets = 0, visible = FALSE))
                                         ),
                                         extensions = 'Buttons', # allow user download (either the currently visible data or the entire table, depending on the server option)
                                         selection = 'multiple', ## enable selection of multiple rows ("none", "single")
@@ -122,4 +130,4 @@ shinyApp(ui = ui, server = server)
 
 
 # Run the app-----
-#runApp("C:/Users/JLU-SU/Documents/GitHub/indicators-app/shiny-app")
+shiny::runGitHub(repo="indicators-app", subdir="shiny-app",username="yanisica")
