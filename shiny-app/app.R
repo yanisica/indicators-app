@@ -6,193 +6,120 @@ rm(list=ls())
 # Find out more about building applications with Shiny here:
 #
 #    http://shiny.rstudio.com/
-#
-# Resources used: https://www.paulamoraga.com/book-geospatial/sec-shinyexample.html
+
 
 library(shiny)
 #library(shinycssloaders)
 #library(shinybusy)
-
-library(sf)
-library(DT)
+library(DT) # interface to the JavaScript library DataTables. It allows you to display R dataframes (or matrices) as interactive tables in HTML pages, such as in a Shiny app.
 
 library(leaflet)
-library(rgdal)
-library(rmapshaper)
+#library(rgdal)
+#library(rmapshaper)
 library(sf)
 
 library(dplyr)
 library(tidyr)
 library(data.table)
+library(ggplot2)
+library(stringr)
 
-source('C:/Users/yanis/Documents/scripts/checks_taxotools.R')
 
 # dir
-data_dir = 'C:/Users/yanis/Documents/scripts/caspian-app/data'
+data_dir = 'C:/Users/JLU-SU/Documents/GitHub/indicators-app/data'
 
 # Prep data----
-# 
-# #species lists
-# nspez <- fread(paste0(data_dir,"/species/Neobiota_ist_nSpez_Gemeinden.gz"))
-# liste <- fread(paste0(data_dir,"/species/Neobiota_IstPot_Liste_Gemeinden.gz"))
-# 
-# # regions
-# regions <- read_sf(paste0(data_dir,"/regions/DEU_ADM_3.shp"))
-# 
-# # Build joins
-# regions_nspez = regions %>% 
-#   inner_join(nspez, by = 'NAME_3') %>% 
-#   dplyr::select(NAME_3, nSpez, NAME_2,geometry) %>% 
-#   # cleaning step that should be removed
-#   distinct(NAME_3, .keep_all = TRUE)
-# 
-# write_sf(regions_nspez, 'C:/Users/yanis/Documents/scripts/caspian-app/data/regions/regions_nspez.shp')
-# 
-# # simplify geometry
-# regions_nspez_simp <- ms_simplify(regions_nspez)
-# write_sf(regions_nspez_simp, 'C:/Users/yanis/Documents/scripts/caspian-app/data/regions/regions_nspez_simp.shp')
-# 
-# # species occurrences
-# point_data <- fread(paste0(data_dir,"/species/Neobiota_AllOccurrences.gz")) 
-# 
-# ab_sp = filter(point_data %>%  group_by(Taxon) %>% count(), n >  100718)
-# 
-# point_data2 = point_data %>% 
-#   distinct()
-# 
-# point_data3 = point_data %>% 
-#   filter(!Taxon %in% ab_sp$Taxon) %>% 
-#   rbind(point_data2)
+# Detailed workflows in indicator repo: https://github.com/yanisica/indicators
 
 
 # Shiny app----
 
 ## load data----
 
-# species list (by region)
-data <- fread(paste0(data_dir,"/species/Neobiota_IstPot_Liste_Gemeinden.gz"))
+# all indicators extracted
+dataset <- fread(paste0(data_dir,"/IPBES-TSU-KND-2023-Indicators-Dataset-v1.1.csv"))
+names(dataset)
+#DT::datatable(dataset)
 
-# regions
-map <- readOGR("C:/Users/yanis/Documents/scripts/caspian-app/data/regions/regions_nspez.shp")
-map_simp <- readOGR("C:/Users/yanis/Documents/scripts/caspian-app/data/regions/regions_nspez_simp.shp")
-
-# species occurrences
-point_data <- fread(paste0(data_dir,"/species/Neobiota_AllOccurrences.gz")) %>% 
-  distinct()
-
+# manipulate indicators dataset
+dataset_beauty <- dataset %>% 
+  # remove entries that were wrongly extracted
+  filter(!is.na(Categories)) %>% 
+  # indic from assessments
+  mutate(ga = gsub(1, 'GA_IPBES', ga)) %>% 
+  mutate(sua = gsub(1, 'SUA_IPBES', sua)) %>% 
+  mutate(va = gsub(1, 'VA_IPBES', va)) %>% 
+  mutate(ias = gsub(1, 'IAS_IPBES', ias)) %>% 
+  mutate(geo = gsub(1, 'GEO6', geo)) %>% 
+  mutate(ipcc = gsub(1, 'AR6_WG1_IPCC', ipcc)) %>% 
+  rowwise() %>% mutate(Assessments = paste(ga,sua,va,ias,geo,ipcc, sep = ",")) %>% 
+  rowwise() %>% mutate(Assessments = gsub("NA,", '', Assessments)) %>% 
+  rowwise() %>% mutate(Assessments = gsub(",NA", '', Assessments)) %>% 
+  rowwise() %>% mutate(Assessments = trimws(Assessments, whitespace = ",")) %>% 
+  rowwise() %>% mutate(Assessments = gsub(",,", '', Assessments)) %>% 
+  rowwise() %>% mutate(Assessments = gsub("NA$", '', Assessments)) %>% 
+  
+  # indic from MEAs
+  mutate(km_gbf = gsub(1, 'GBF', km_gbf)) %>% 
+  mutate(sdg = gsub(1, 'SDG', sdg)) %>% 
+  mutate(cites = gsub(1, 'CITES', cites)) %>% 
+  mutate(cms = gsub(1, 'CMS', cms)) %>% 
+  mutate(iccwc = gsub(1, 'ICCWC', iccwc)) %>% 
+  mutate(ramsar = gsub(1, 'RAMSAR', ramsar)) %>% 
+  mutate(unccd = gsub(1, 'UNCCD', unccd)) %>% 
+  rowwise() %>% mutate(MEAs = paste(km_gbf,sdg,cites,cms,iccwc,ramsar, unccd, sep = ",")) %>% 
+  rowwise() %>% mutate(MEAs = gsub("NA,", '', MEAs)) %>% 
+  rowwise() %>% mutate(MEAs = gsub(",NA", '', MEAs)) %>% 
+  rowwise() %>% mutate(MEAs = trimws(MEAs, whitespace = ",")) %>% 
+  rowwise() %>% mutate(MEAs = gsub(",,", '', MEAs)) %>%   
+  rowwise() %>% mutate(MEAs = gsub("NA$", '', MEAs)) %>% 
+  # way of extraction
+  rowwise() %>% mutate(indic_ext = gsub(1, 'tables', indic_ext)) %>% 
+  rowwise() %>% mutate(var_ext = gsub(1, 'text', var_ext)) %>% 
+  rowwise() %>% mutate(extraction_type = paste(indic_ext,var_ext, sep = ",")) %>% 
+  rowwise() %>% mutate(extraction_type = gsub("NA,", '', extraction_type)) %>% 
+  rowwise() %>% mutate(extraction_type = gsub(",NA", '', extraction_type)) %>% 
+  rowwise() %>% mutate(extraction_type = gsub("NA$", '', extraction_type)) %>% 
+  # clean dataset
+  rowwise() %>% mutate(Categories = stringr::str_to_sentence(Categories)) %>% 
+  rowwise() %>% mutate(Categories_2 = stringr::str_to_sentence(Categories_2)) %>% 
+  rowwise() %>% mutate(Subcategories = stringr::str_to_sentence(Subcategories)) %>% 
+  rowwise() %>% mutate(Subcategories_2 = stringr::str_to_sentence(Subcategories_2)) %>% 
+  dplyr::select( "Indicators harmonized"="indicators_harmonized","Assessments","MEAs","Frequency of use"="usage",
+                 "Main category"="Categories","Main subcategory"="Subcategories",
+                "Second. category"="Categories_2","Second. subcategory"="Subcategories_2","Extraction type" = "extraction_type")
 
 ## build app----
-# ui object (ui <- fluidPage( ))
-ui <- fluidPage(
-  
-  ### Title
-  #titlePanel("title"),
-  titlePanel(p("Interactive map", style = "color:#3474A7")),
-  
-  ### Layout
-  sidebarLayout(
-    ## Sidebar panel
-    #sidebarPanel("sidebar panel for inputs"),
-    sidebarPanel(
-      
-      # add menu for selection
-      selectizeInput(
-        inputId = "municipalitySelected",
-        label = "Select municipality",
-        choices = c("All",unique(map@data$NAME_3))
-      ),
-      selectizeInput(
-        inputId = "spSelected",
-        label = "Select species",
-        choices = c("All",unique(data$Taxon))
-      ),
-      #Warning message: The select input "municipalitySelected" contains a large number of options; 
-      #consider using server-side selectize for massively improved performance. See the Details section of the ?selectizeInput help topic. 
-      
-      # adds text
-      p("Made with", a("Shiny",
-                       href = "http://shiny.rstudio.com"
-      ), "."),
-      
-    ),
-    
-    ## Main panel
-    #mainPanel("main panel for outputs")
-    mainPanel(
-      # interactive map
-      leafletOutput(outputId = "map"),
-      # output table
-      DTOutput(outputId = "table")
-    )
+
+
+ui <- fluidPage(titlePanel("Indicators used in assessments and MEAs"),
+                mainPanel(width = 12,
+                          DT::dataTableOutput("mytable")))
+
+server <- function(input, output) {
+  output$mytable <- DT::renderDataTable(dataset_beauty,
+                                        options = list(paging = TRUE,    ## paginate the output
+                                                       pageLength = 10,  ## number of rows to output for each page
+                                                       scrollX = TRUE,   ## enable scrolling on X axis
+                                                       scrollY = TRUE,   ## enable scrolling on Y axis
+                                                       autoWidth = TRUE, ## use smart column width handling
+                                                       server = FALSE,   ## use client-side processing (if TRUE the browser receives only the displayed data)
+                                                       # allow user download
+                                                       dom = 'Bfrtip', #B:Button, f:filter, r:processing display element, t:table, i:table information summary, p:pagination control
+                                                       buttons = c('csv', 'excel'),
+                                                       columnDefs = list(list(targets = '_all', className = 'dt-center'),
+                                                                         list(targets = c(0, 8, 9), visible = FALSE))
+                                        ),
+                                        extensions = 'Buttons', # allow user download (either the currently visible data or the entire table, depending on the server option)
+                                        selection = 'multiple', ## enable selection of multiple rows ("none", "single")
+                                        filter = 'top',              ## include column filters at the bottom
+                                        rownames = TRUE                ## don't show row numbers/names
   )
-)
-
-
-# server function (server <- function(input, output){})
-server <- function(input, output){
-  
-  # render the output table 
-  output$table <- renderDT(
-    # show only species in the selected municipality
-    datafiltered <- data[which(data$NAME_3 == input$municipalitySelected),2:5 ]
-                           )
-
-  # render interactive map
-  output$map <- renderLeaflet({
-    
-    # add data to map
-    if(input$municipalitySelected == "All"){
-      mapfiltered <- map_simp
-    }else {
-      mapfiltered <- map[which(map@data$NAME_3 == input$municipalitySelected), ]
-    }
-
-    # create leaflet
-    pal <- colorBin("YlOrRd", domain = mapfiltered$nSpez, bins = 7)
-    
-    labels <- sprintf("%s: %g", mapfiltered$NAME_3, mapfiltered$nSpez) %>%
-      lapply(htmltools::HTML)
-    
-    #plot the base map
-    leaflet(mapfiltered) %>%
-      addTiles() %>%
-      addPolygons(
-        fillColor = ~ pal(nSpez),
-        color = "white",
-        dashArray = "3",
-        fillOpacity = 0.7,
-        label = labels) %>%
-      leaflet::addLegend(
-        pal = pal, values = ~nSpez,
-        opacity = 0.7, title = "Observed species")
-  })
-  
-  # add species occurrences
-  
-  observeEvent(input$spSelected, {
-
-    spfiltered <- point_data[which(point_data$Taxon == input$spSelected), ]
-
-    leafletProxy("map", data = spfiltered) %>%
-      clearMarkers() %>% 
-      addMarkers(
-        lat = spfiltered$Breitengrad,
-        lng = spfiltered$Laengengrad
-      )
-      # addCircles(
-      #   lat = spfiltered$Breitengrad,
-      #   lng = spfiltered$Laengengrad,
-      #   color = "#000000",
-      #   fillColor = "#000000",
-      #   weight = 5
-      # )
-
-})
-  
 }
 
-# shinyApp()
+# Run the application
 shinyApp(ui = ui, server = server)
 
+
 # Run the app-----
-runApp("C:/Users/yanis/Documents/scripts/caspian-app/shiny-app")
+#runApp("C:/Users/JLU-SU/Documents/GitHub/indicators-app/shiny-app")
