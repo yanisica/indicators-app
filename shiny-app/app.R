@@ -25,19 +25,15 @@ library(ggplot2)
 library(stringr)
 
 
-# dir
-data_dir = 'C:/Users/JLU-SU/Documents/GitHub/indicators-app/data'
 
 # Prep data----
 # Detailed workflows in indicator repo: https://github.com/yanisica/indicators
 
-
-# Shiny app----
-
-## load data----
+# Load data----
+#setwd(file.path("GitHub","indicators-app"))
 
 # all indicators extracted
-dataset <- fread("./data/IPBES-TSU-KND-2023-Indicators-Dataset-v1.1.csv")
+dataset <- fread(file.path(".","data","IPBES-TSU-KND-2023-Indicators-Dataset-v1.1.csv)"))
 names(dataset)
 #DT::datatable(dataset)
 
@@ -95,8 +91,9 @@ dataset_beauty <- dataset %>%
                  "Main category"="Categories","Main subcategory"="Subcategories",
                 "Second. category"="Categories_2","Second. subcategory"="Subcategories_2","Extraction type" = "extraction_type")
 DT::datatable(dataset_beauty)
-## build app----
 
+
+# Shiny app----
 
 ui <- fluidPage(titlePanel("Indicators used in assessments and MEAs"),
                 #titlePanel("Download options"),
@@ -115,8 +112,12 @@ server <- function(input, output) {
                                                        # allow user download
                                                        dom = 'Bfrtip', #B:Button, f:filter, r:processing display element, t:table, i:table information summary, p:pagination control
                                                        buttons = c('csv', 'excel'),
-                                                       columnDefs = list(list(targets = 1, width = '300px'),
-                                                                         list(targets = 0, visible = FALSE))
+                                                       columnDefs = list(
+                                                         # fixed width for 1st col
+                                                         list(targets = 1, width = '300px'),
+                                                         # row number not visible
+                                                         list(targets = 0, visible = FALSE)
+                                                         )
                                         ),
                                         extensions = 'Buttons', # allow user download (either the currently visible data or the entire table, depending on the server option)
                                         selection = 'multiple', ## enable selection of multiple rows ("none", "single")
@@ -130,4 +131,4 @@ shinyApp(ui = ui, server = server)
 
 
 # Run the app-----
-shiny::runGitHub(repo="indicators-app", subdir="shiny-app",username="yanisica")
+#shiny::runGitHub(repo="indicators-app", subdir="shiny-app",username="yanisica")
