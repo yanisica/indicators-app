@@ -13,10 +13,10 @@ library(shiny)
 #library(shinybusy)
 library(DT) # interface to the JavaScript library DataTables. It allows you to display R dataframes (or matrices) as interactive tables in HTML pages, such as in a Shiny app.
 
-library(leaflet)
+#library(leaflet)
 #library(rgdal)
 #library(rmapshaper)
-library(sf)
+#library(sf)
 
 library(dplyr)
 library(tidyr)
@@ -24,7 +24,7 @@ library(data.table)
 library(ggplot2)
 library(stringr)
 
-
+#add require to install needed packages
 
 # Prep data----
 # Detailed workflows in indicator repo: https://github.com/yanisica/indicators
