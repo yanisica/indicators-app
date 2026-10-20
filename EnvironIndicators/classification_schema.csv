@@ -1,0 +1,47 @@
+Elements,Subelements,Description
+Biodiversity,State of biodiversity,"Status of populations, communities and/or species."
+Biodiversity,Change in biodiversity,"Change or trends in populations, communities and/or species"
+Biodiversity,Genetic resources,"Information, access and/or safehouse of species genetic resources"
+Biodiversity,Genetic diversity,"Phylogenetics, genetic diversity"
+Biodiversity,Species conservation,Species conservation status and/or action. Includes any mention of wildlife management policies
+Ecosystems,State of ecosystems (coverage),Extent of natural ecosystems (this sub-category is only applied to terrestrial ecosystems)
+Ecosystems,State of ecosystems (configuration),"Configuration (fragmentation, connectivity) of natural ecosystems (this sub-category is only applied to terrestrial ecosystems)"
+Ecosystems,State of ecosystems (integrity),Integrity (quality) of natural ecosystems (this sub-category is only applied to terrestrial ecosystems)
+Ecosystems,State of ecosystems (marine),"Extent, configuration, and quality of marine ecosystems"
+Ecosystems,State of ecosystems (freshwater/coastal),"Extent, configuration, and quality of freshwater and coastal ecosystems"
+Ecosystems,State of ecosystems,"Extent, configuration, and quality of ecosystems where no realm or other differentiation was done"
+Ecosystems,Change in ecosystems,Changes or trends in natural ecosystems
+Ecosystems,Area conservation,"Measures of protected areas, OECMs and indigenous lands. Includes any mention of land management and planning (e.g. green or blue urban spaces)"
+Ecosystems,Restoration efforts,Status of restoration or regeneration activities.
+Ecosystems,Abiotic conditions,"Temperature, precipitation, soil, water, air, sunlight (status and change)"
+Ecosystem services,Specific mention of sustainable use of species/ecosystems,Sustainable use of Nature
+Ecosystem services,Specific monetary valuation of nature contribution,Economic valuation of ecosystem services
+Ecosystem services,Nature contribution,"Nature’s Contribution to people (i.e., ecosystem services) with no differentiation between sustainable/unsustainable use or monetary/intrinsic values"
+Human well-being,Wellness,"Descriptions of happiness, general human wellness (holistic indicators)"
+Human well-being,Healthy living conditions,Metrics of environmental conditions required for a healthy livelihood
+Human well-being,Cultural diversity,"Descriptions of race and ethnicity diversity, identity"
+Human well-being,Equity,"Metrics related to equality of gender, age and disability, justice and freedom of choice, land tenure rights"
+Human well-being,Recreation,Recreation in the broadest sense (including alcohol use)
+Direct drivers,Land conversion,"Metrics on habitat loss, land use change"
+Direct drivers,Pollution,Measurements of air and/or water pollution
+Direct drivers,Specific mention of over-exploitation and unsustainable use of species/ecosystems,"Over-exploitation and unsustainable use of Nature (explicitly unsustainable or illegal), trade of threatened species, human footprint and food waste."
+Direct drivers,Climate change,"Metrics of emissions, fossil-fuel use, climate change and their effects"
+Direct drivers,Invasive alien species,"Introductions, establishments, spread and impacts of invasive alien species"
+Direct drivers,Infectious diseases,"Spread of infectious diseases, hosts, vectors, zoonoses, and infectious diseases"
+Direct drivers,Natural drivers,Natural disasters or extreme weather events
+Human assets,State of economy,"Financial assets such as investments, loans, GDP"
+Human assets,Income,"Employment, access to jobs, fellowships, benefits"
+Human assets,Infrastructure,"Metrics on human infrastructure (e.g., built-up area, roads, hydroelectric developments, energy production)"
+Human assets,Coverage of basic needs,"Access to food, drinking/potable water, education, healthcare, housing (including metrics on consumption)"
+Knowledge systems,Information on biodiversity,"Information status on biodiversity (data on species, number of assessments, and knowledge gaps)"
+Knowledge systems,Information on society and socio-economics,"Information status on social aspects (population trends, growth, etc.)"
+Knowledge systems,Specific information on Indigenous Peoples and Local Communities (IPLC),"Information status on indigenous and local communities (IPLC areas, indigenous peoples’ populations)"
+Knowledge systems,Specific information on human-nature relationship,"Actions describing people living in harmony with nature (recycling programs, environmental education)"
+Knowledge systems,Indigenous and Local Knowledge (ILK),"Indigenous local knowledge (e.g., local calendars, artisanal management, linguistics)"
+Governance,Legislation/governance,Descriptions of institutions and governance systems
+Governance,Nature-based funding,Programs involving funding for conservation/restoration/climate change
+Governance,Nature-based legislation,Legislation that supports nature-based and climate mitigation solutions
+Governance,Nature detrimental legislation,Legislation that supports extractive and non-sustainable activities
+Governance,Legislation regarding ILK and IPLC,Legislation on IPLC
+Governance,National/international cooperation,"International legislation, multilateral cooperation and agreements (e.g., migration treaties). Includes any capacity-building efforts."
+Governance,Broken governance,"Measurements of corruption, broken laws, violence, assault, injustice"

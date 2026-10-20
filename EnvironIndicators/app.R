@@ -7,9 +7,30 @@ rm(list=ls())
 #
 #    http://shiny.rstudio.com/
 #
-# NOTE: run integration.R (https://github.com/yanisica/indicators) first (once, or whenever the source CSVs are
-# refreshed) - it builds ../data/indicators_prepped.csv, which this app
-# reads directly. app.R itself does no joining/derivation.
+# THIS VERSION reads the new "app-ready" export, indicators_prepped_app.csv,
+# which already carries the final column names/shape (Elements, Elements_2,
+# Subelements, Subelements_2, Sources, Number of sources, MEA/assess,
+# Indicators original name) - no separate join against all_orig_indicators.csv
+# is needed here anymore, and there is no `policy` column in this file, so
+# the previous "Policy-relevant" stat box/column has been removed.
+#
+# Kept/updated from the earlier version:
+#   - Source(s) shown as small colored badges, using the same palette
+#     (`grid_color`) used in the paper's figures, instead of plain text.
+#   - A row of compact "raw estimates" stat boxes.
+#   - Two side-by-side legend panels below the stat boxes - "Multilateral
+#     Environmental Agreements" and "Global Assessments" - each listing
+#     that group's framework badges, full names, and how many indicators
+#     use each one (replaces the earlier single "What the acronyms mean"
+#     panel and the bar chart that came before it).
+#   - A collapsible "Classification schema" block (Table B1 of the
+#     supplementary material), colored with the Elements palette and read
+#     from classification_schema.csv.
+#   - A footer line at the bottom of the page crediting the dataset's
+#     source article and contact.
+# All summary/derivation logic below uses dplyr/tidyr, not data.table
+# (data.table is only used for fread()).
+# -------------------------------------------------------------------------
 
 
 library(shiny)
@@ -17,17 +38,36 @@ library(shiny)
 #library(shinybusy)
 library(DT) # interface to the JavaScript library DataTables. It allows you to display R dataframes (or matrices) as interactive tables in HTML pages, such as in a Shiny app.
 
+#library(leaflet)
+#library(rgdal)
+#library(rmapshaper)
+#library(sf)
+
 library(dplyr)
 library(tidyr)
 library(data.table)  # only used here for fread()
-library(ggplot2)
 library(stringr)
 
+#add require to install needed packages
+
+# Prep data----
+# Detailed workflows in indicator repo: https://github.com/yanisica/indicators
 
 # Load data----
 #setwd(file.path("indicators-app","shiny-app"))
 
-# Loads the app-ready table
+# Loads the app-ready table. It already has Elements/Elements_2/
+# Subelements/Subelements_2, Sources, Number of sources, MEA/assess, and
+# Indicators original name computed - app.R only formats/displays it.
+#
+# The CSV is expected right next to app.R (this is REQUIRED for
+# deployment: rsconnect::deployApp() only uploads the app folder itself,
+# never a sibling or parent folder, so a "../data/..." path works only
+# when running locally and will crash the app on shinyapps.io with
+# "exit status 1" - the stop() below is what actually throws in that
+# case). A "../data/..." location is kept as a secondary check purely as
+# a convenience for local development if you'd rather not duplicate the
+# file while iterating.
 data_path <- "indicators_prepped_app.csv"
 if (!file.exists(data_path)) {
   data_path <- file.path("..", "data", "indicators_prepped_app.csv")
@@ -70,6 +110,74 @@ source_full_name <- c(
 # Agreements (MEAs) - used to split the two legend columns below.
 assessment_sources <- c("IPBES", "IPCC", "GEO")
 mea_sources         <- c("GBF", "SDG", "RAMSAR", "CITES", "CMS", "UNCCD")
+
+# ---- Classification schema (Table B1 of the supplementary material) -------
+# Colors for the 8 Elements, same palette used in the paper's figures.
+element_color <- c(
+  Biodiversity         = "#FEF392",
+  Ecosystems           = "#D0ED9C",
+  `Ecosystem services` = "#A5E0B6",
+  `Human well-being`   = "#8FD0C3",
+  `Direct drivers`     = "#93BFC7",
+  `Human assets`       = "#9BAEC6",
+  `Knowledge systems`  = "#A399BF",
+  Governance           = "#A280AA"
+)
+
+# Table B1 itself lives in classification_schema.csv (Elements,
+# Subelements, Description). Like the data file, it must sit directly next
+# to app.R so rsconnect uploads it with the app.
+schema_path <- "classification_schema.csv"
+if (!file.exists(schema_path)) {
+  stop(
+    "Could not find 'classification_schema.csv'. It must sit directly next ",
+    "to app.R (rsconnect only uploads the app folder itself)."
+  )
+}
+schema <- fread(schema_path, encoding = "UTF-8")
+
+# lighter version of a color (amt = share of white mixed in), used to band
+# the sub-element rows under each element
+tint <- function(col, amt = 0.65) {
+  m <- as.numeric(grDevices::col2rgb(col)) / 255 * (1 - amt) + amt
+  grDevices::rgb(m[1], m[2], m[3])
+}
+
+# Element names (as they appear in the table after sentence-casing) with
+# their solid and light colors, used to color the four category columns.
+element_names <- names(element_color)
+element_solid <- unname(element_color)
+element_light <- vapply(element_solid, tint, character(1), USE.NAMES = FALSE)
+
+# Table B1 as HTML: one solid-colored cell per element (spanning its
+# sub-elements) with the sub-element rows in a lighter tint of that color.
+# An element missing from element_color falls back to grey.
+schema_table <- function(schema) {
+  groups <- lapply(unique(schema$Elements), function(el) {
+    grp  <- dplyr::filter(schema, Elements == el)
+    col  <- unname(element_color[el])
+    if (is.na(col)) col <- "#E5E5E5"
+    band <- tint(col)
+    lapply(seq_len(nrow(grp)), function(i) {
+      tags$tr(
+        class = if (i == 1) "group-start",
+        if (i == 1) {
+          tags$td(el, rowspan = nrow(grp), class = "schema-element",
+                  style = sprintf("background:%s;", col))
+        },
+        tags$td(grp$Subelements[i], style = sprintf("background:%s;", band)),
+        tags$td(grp$Description[i], style = sprintf("background:%s;", band))
+      )
+    })
+  })
+  tags$table(
+    class = "schema-table",
+    tags$thead(tags$tr(
+      tags$th("Elements"), tags$th("Sub-elements"), tags$th("Description")
+    )),
+    tags$tbody(groups)
+  )
+}
 
 # small helper: "NA"/"" -> NA, everything else -> Sentence case
 clean_cat <- function(x) {
@@ -138,7 +246,7 @@ dataset_beauty <- dataset %>%
   dplyr::select(
     "Indicator"             = `Indicators harmonized`,
     "Source(s)",
-    "Frequency of use",
+    "Number of sources",
     "MEA/assess",
     "Main category"         = Elements,
     "Main subcategory"      = Subelements,
@@ -172,7 +280,7 @@ assess_only_n <- get_n("assessment")
 mea_only_n    <- get_n("mea")
 both_n        <- get_n("both")
 
-multi_source_n <- sum(dataset_beauty$`Frequency of use` > 1)
+multi_source_n <- sum(dataset_beauty$`Number of sources` > 1)
 
 # indicator count per framework (an indicator used in 2 frameworks counts
 # once toward each), used in the two legend panels below
@@ -247,6 +355,28 @@ ui <- fluidPage(
       color: #888; font-size: 12px; margin-top: 24px; padding-top: 12px;
       border-top: 1px solid #ddd;
     }
+    .schema-box {
+      background: #fff; border: 1px solid #ddd; border-radius: 6px;
+      margin-top: 12px;
+    }
+    .schema-box > summary {
+      cursor: pointer; padding: 10px 18px;
+      font-size: 13px; font-weight: 600; color: #555;
+    }
+    .schema-wrap { padding: 0 18px 14px; overflow-x: auto; }
+    .schema-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    .schema-table th {
+      text-align: left; padding: 6px 12px; font-size: 12px; color: #666;
+      border-bottom: 1px solid #ddd;
+    }
+    .schema-table td {
+      padding: 6px 12px; vertical-align: middle; color: #222;
+      border-bottom: 1px solid #fff;
+    }
+    .schema-table tr.group-start td { border-top: 4px solid #fff; }
+    .schema-table td.schema-element {
+      width: 160px; text-align: center; font-weight: 600;
+    }
     .explore-heading {
       margin-bottom: 8px;
     }
@@ -288,6 +418,21 @@ ui <- fluidPage(
         h4("Global Assessments"),
         lapply(assessment_sources, source_legend_row)
       )
+    )
+  ),
+  
+  # Table B1, collapsed by default (add `open = NA` to the details tag to
+  # show it expanded when the page loads)
+  fluidRow(
+    column(
+      12,
+      tag("details", list(
+        class = "schema-box",
+        tag("summary", list(
+          "Classification schema: elements and sub-elements of the socio-ecological system (click to open)"
+        )),
+        div(class = "schema-wrap", schema_table(schema))
+      ))
     )
   ),
   
@@ -359,6 +504,28 @@ server <- function(input, output) {
       DT::formatStyle(
         "MEA/assess",
         backgroundColor = DT::styleEqual(c("assessment", "mea", "both"), c("#E5F5E0", "#EFF3FF", "#FDE4C8"))
+      ) %>%
+      # light grey background for the Indicator column
+      DT::formatStyle("Indicator", backgroundColor = "#EDEDED") %>%
+      # Elements palette on the four category columns: categories get the
+      # solid color, sub-categories a lighter tint of the same color (same
+      # look as Table B1 above). Sub-category cells are colored by the
+      # category in the same row (valueColumns), so they always match it.
+      DT::formatStyle(
+        "Main category",
+        backgroundColor = DT::styleEqual(element_names, element_solid)
+      ) %>%
+      DT::formatStyle(
+        "Main subcategory", valueColumns = "Main category",
+        backgroundColor = DT::styleEqual(element_names, element_light)
+      ) %>%
+      DT::formatStyle(
+        "Second. category",
+        backgroundColor = DT::styleEqual(element_names, element_solid)
+      ) %>%
+      DT::formatStyle(
+        "Second. subcategory", valueColumns = "Second. category",
+        backgroundColor = DT::styleEqual(element_names, element_light)
       )
   })
 }
@@ -369,3 +536,4 @@ shinyApp(ui = ui, server = server)
 
 # Run the app-----
 #shiny::runGitHub(repo="indicators-app", subdir="shiny-app",username="yanisica")
+
