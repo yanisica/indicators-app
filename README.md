@@ -1,5 +1,5 @@
-# indicators-app (Shiny App)
+# EnvironIndicators (Shiny App)
 
 Interface for filtering and selecting indicators and metrics used in multiple MEAs and assessments.
  
-This repo accompanies the article: https://doi.org/10.5281/zenodo.17281329
+This repo is linked to: https://github.com/yanisica/indicators_public
