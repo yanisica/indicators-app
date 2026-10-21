@@ -10,11 +10,8 @@ rm(list=ls())
 # THIS VERSION reads the new "app-ready" export, indicators_prepped_app.csv,
 # which already carries the final column names/shape (Elements, Elements_2,
 # Subelements, Subelements_2, Sources, Number of sources, MEA/assess,
-# Indicators original name) - no separate join against all_orig_indicators.csv
-# is needed here anymore, and there is no `policy` column in this file, so
-# the previous "Policy-relevant" stat box/column has been removed.
-#
-# Kept/updated from the earlier version:
+# Indicators original name).
+# It includes:
 #   - Source(s) shown as small colored badges, using the same palette
 #     (`grid_color`) used in the paper's figures, instead of plain text.
 #   - A row of compact "raw estimates" stat boxes.
@@ -28,8 +25,6 @@ rm(list=ls())
 #     from classification_schema.csv.
 #   - A footer line at the bottom of the page crediting the dataset's
 #     source article and contact.
-# All summary/derivation logic below uses dplyr/tidyr, not data.table
-# (data.table is only used for fread()).
 # -------------------------------------------------------------------------
 
 
@@ -56,29 +51,25 @@ library(stringr)
 # Load data----
 #setwd(file.path("indicators-app","shiny-app"))
 
-# Loads the app-ready table. It already has Elements/Elements_2/
-# Subelements/Subelements_2, Sources, Number of sources, MEA/assess, and
-# Indicators original name computed - app.R only formats/displays it.
+# Loads the app-ready table.
 #
 # The CSV is expected right next to app.R (this is REQUIRED for
 # deployment: rsconnect::deployApp() only uploads the app folder itself,
-# never a sibling or parent folder, so a "../data/..." path works only
-# when running locally and will crash the app on shinyapps.io with
-# "exit status 1" - the stop() below is what actually throws in that
-# case). A "../data/..." location is kept as a secondary check purely as
+# never a sibling or parent folder.
+# A "../data/..." location is kept as a secondary check purely as
 # a convenience for local development if you'd rather not duplicate the
 # file while iterating.
 data_path <- "indicators_prepped_app.csv"
-if (!file.exists(data_path)) {
-  data_path <- file.path("..", "data", "indicators_prepped_app.csv")
-}
-if (!file.exists(data_path)) {
-  stop(
-    "Could not find 'indicators_prepped_app.csv'. For deployment, it must ",
-    "sit directly next to app.R (rsconnect only uploads the app folder ",
-    "itself). '../data/' is only checked as a local-development fallback."
-  )
-}
+# if (!file.exists(data_path)) {
+#   data_path <- file.path("..", "data", "indicators_prepped_app.csv")
+# }
+# if (!file.exists(data_path)) {
+#   stop(
+#     "Could not find 'indicators_prepped_app.csv'. For deployment, it must ",
+#     "sit directly next to app.R (rsconnect only uploads the app folder ",
+#     "itself). '../data/' is only checked as a local-development fallback."
+#   )
+# }
 
 dataset <- fread(data_path, encoding = "UTF-8", na.strings = c("NA", ""))
 names(dataset)
@@ -179,11 +170,14 @@ schema_table <- function(schema) {
   )
 }
 
-# small helper: "NA"/"" -> NA, everything else -> Sentence case
-clean_cat <- function(x) {
-  x <- ifelse(is.na(x), NA_character_, str_to_sentence(x))
-  x
-}
+# small helper: NA stays NA; otherwise only the FIRST letter is capitalised.
+# (The rest is left untouched on purpose: str_to_sentence() lowercases
+# The categories in the CSV are
+# already written the way they should be displayed.)
+# clean_cat <- function(x) {
+#   ifelse(is.na(x), NA_character_,
+#          paste0(toupper(substr(x, 1, 1)), substr(x, 2, nchar(x))))
+# }
 
 # small helper: "GBF;IPBES" -> colored HTML badges, using grid_color.
 # Any source not in grid_color falls back to a neutral grey badge rather
@@ -218,27 +212,13 @@ dataset_beauty <- dataset %>%
   mutate(sources = str_replace_all(Sources, ";", ", ")) %>%
   
   # clean/sentence-case category & subcategory fields
-  mutate(
-    Elements      = clean_cat(Elements),
-    Elements_2    = clean_cat(Elements_2),
-    Subelements   = clean_cat(Subelements),
-    Subelements_2 = clean_cat(Subelements_2)
-  ) %>%
-  
-  # "ILK" (an acronym for Indigenous and Local Knowledge) becomes "Ilk"
-  # after clean_cat()'s sentence-casing above; spell it out in full
-  # wherever it appears as its own category/subcategory value. (This
-  # only catches the exact value "Ilk" - the longer phrase "Specific
-  # information on ILK and IPLC" gets fully lowercased by clean_cat()'s
-  # str_to_sentence() the same way any multi-word value does, which is a
-  # separate, pre-existing quirk not touched here.)
-  mutate(
-    across(
-      c(Elements, Elements_2, Subelements, Subelements_2),
-      ~ if_else(.x == "Ilk", "Indigenous and Local Knowledge", .x)
-    )
-  ) %>%
-  
+  # mutate(
+  #   Elements      = clean_cat(Elements),
+  #   Elements_2    = clean_cat(Elements_2),
+  #   Subelements   = clean_cat(Subelements),
+  #   Subelements_2 = clean_cat(Subelements_2)
+  # ) %>%
+
   # colored source badges, built from the original (semicolon-separated)
   # Sources column, before it becomes the comma-joined `sources` above
   mutate(`Source(s)` = vapply(Sources, make_source_badges, character(1))) %>%
@@ -250,8 +230,8 @@ dataset_beauty <- dataset %>%
     "MEA/assess",
     "Main category"         = Elements,
     "Main subcategory"      = Subelements,
-    "Second. category"      = Elements_2,
-    "Second. subcategory"   = Subelements_2,
+    "Secon. category"      = Elements_2,
+    "Secon. subcategory"   = Subelements_2,
     "Verbatim indicator"    = `Indicators original name`
   )
 
@@ -520,11 +500,11 @@ server <- function(input, output) {
         backgroundColor = DT::styleEqual(element_names, element_light)
       ) %>%
       DT::formatStyle(
-        "Second. category",
+        "Secon. category",
         backgroundColor = DT::styleEqual(element_names, element_solid)
       ) %>%
       DT::formatStyle(
-        "Second. subcategory", valueColumns = "Second. category",
+        "Secon. subcategory", valueColumns = "Secon. category",
         backgroundColor = DT::styleEqual(element_names, element_light)
       )
   })
@@ -536,4 +516,3 @@ shinyApp(ui = ui, server = server)
 
 # Run the app-----
 #shiny::runGitHub(repo="indicators-app", subdir="shiny-app",username="yanisica")
-
